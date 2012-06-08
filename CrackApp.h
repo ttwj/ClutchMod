@@ -1,11 +1,3 @@
-//
-//  CrackApp.h
-//  Clutch
-//
-//  Created by Terence Tan on 7/6/12.
-//  Copyright (c) 2012 __MyCompanyName__. All rights reserved.
-//
-
 #import <Foundation/Foundation.h>
 
 
@@ -20,9 +12,10 @@
     NSString *workingDir;
     
 }
-
-- (NSString*) crack_application: (NSString*)application_basedir: (NSString*) basename;
-- (NSString*) init_crack_binary: (NSString*)application_basedir NSString *bdir, NSString *workingDir, NSDictionary *infoplist);
-NSString * crack_binary(NSString *binaryPath, NSString *finalPath, NSString **error);
-NSString * genRandStringLength(int len);
+/*
+ TODO: Move cracking to a class
+ 
+- (NSString*) crack_application;
+- (NSString*) init_crack_binary;
+ */
 @end

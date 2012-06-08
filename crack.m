@@ -1,11 +1,53 @@
 #import "crack.h"
 #import <Foundation/Foundation.h>
 
-int overdrive_enabled = 0;
+#include <pthread.h>
 
+int overdrive_enabled = 0;
+NSString *workingDir = @"";
+NSString *binary_name = @"";
+NSString *ipapath = @"";
+NSString *crackerName = @"";
+
+NSMutableDictionary *infoplist;
+NSThread *zipthread;
+
+void zip_resources(NSString *dir, NSString *zip) {
+        NOTIFY("Compressing original app...");
+	NSString *compressionArguments = [[ClutchConfiguration getValue:@"CompressionArguments"] stringByAppendingString:@" "];
+	if (compressionArguments == nil)
+		compressionArguments = @"-0 ";
+    
+    [[NSFileManager defaultManager] createSymbolicLinkAtPath:[workingDir stringByAppendingString:@"Payload"] withDestinationPath:[dir stringByAppendingString:@"/../"] error:NULL];
+    
+	system([[NSString stringWithFormat:@"cd %@; zip %@-u -y -r -n .jpg:.JPG:.jpeg:.png:.PNG:.gif:.GIF:.Z:.gz:.zip:.zoo:.arc:.lzh:.rar:.arj:.mp3:.mp4:.m4a:.m4v:.ogg:.ogv:.avi:.flac:.aac \"%@\" Payload/* -x Payload/iTunesArtwork Payload/iTunesMetadata.plist \"Payload/Documents/*\" \"Payload/Library/*\" \"Payload/tmp/*\" \"Payload/*/%@\" \"Payload/*/SC_Info/*\" 2>&1> /dev/null", workingDir, zip, binary_name] UTF8String]);
+    //I love you dissident
+    [[NSFileManager defaultManager] removeItemAtPath:[workingDir stringByAppendingString:@"Payload"] error: NULL]; //I hope this doesn't remove the entire folder...
+}
+NSString * get_ipapath() {
+    if (ipapath.length > 1) {
+        return ipapath;
+    }
+    // filename addendum
+    NSString *addendum = @"";
+    
+    if (overdrive_enabled)
+        addendum = @"-OD";
+    
+	if ([[ClutchConfiguration getValue:@"FilenameCredit"] isEqualToString:@"YES"]) {
+		ipapath = [NSString stringWithFormat:@"/var/root/Documents/Cracked/%@-v%@-%@%@.ipa", [[infoplist objectForKey:@"CFBundleDisplayName"] stringByReplacingOccurrencesOfString:@"/" withString:@"_"], [infoplist objectForKey:@"CFBundleVersion"], crackerName, addendum];
+	} else {
+		ipapath = [NSString stringWithFormat:@"/var/root/Documents/Cracked/%@-v%@%@.ipa", [[infoplist objectForKey:@"CFBundleDisplayName"] stringByReplacingOccurrencesOfString:@"/" withString:@"_"], [infoplist objectForKey:@"CFBundleVersion"], addendum];
+	}
+	[[NSFileManager defaultManager] createDirectoryAtPath:@"/var/root/Documents/Cracked/" withIntermediateDirectories:TRUE attributes:nil error:NULL];
+	[[NSFileManager defaultManager] removeItemAtPath:ipapath error:NULL];
+    return ipapath;
+
+}
 NSString * crack_application(NSString *application_basedir, NSString *basename) {
+    crackerName = [ClutchConfiguration getValue:@"CrackerName"];
     VERBOSE("Creating working directory...");
-	NSString *workingDir = [NSString stringWithFormat:@"%@%@/", @"/tmp/clutch_", genRandStringLength(8)];
+	workingDir = [NSString stringWithFormat:@"%@%@/", @"/tmp/clutch_", genRandStringLength(8)];
 	if (![[NSFileManager defaultManager] createDirectoryAtPath:[workingDir stringByAppendingFormat:@"Payload/%@", basename] withIntermediateDirectories:YES attributes:[NSDictionary
 			dictionaryWithObjects:[NSArray arrayWithObjects:@"mobile", @"mobile", nil]
 			forKeys:[NSArray arrayWithObjects:@"NSFileOwnerAccountName", @"NSFileGroupOwnerAccountName", nil]
@@ -14,6 +56,7 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 		return nil;
 	}
 	
+    
     VERBOSE("Performing initial analysis...");
 	struct stat statbuf_info;
 	stat([[application_basedir stringByAppendingString:@"Info.plist"] UTF8String], &statbuf_info);
@@ -23,7 +66,7 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 	oldtimes_info.actime = ist_atime;
 	oldtimes_info.modtime = ist_mtime;
 	
-	NSMutableDictionary *infoplist = [NSMutableDictionary dictionaryWithContentsOfFile:[application_basedir stringByAppendingString:@"Info.plist"]];
+	infoplist = [NSMutableDictionary dictionaryWithContentsOfFile:[application_basedir stringByAppendingString:@"Info.plist"]];
 	if (infoplist == nil) {
 		printf("error: Could not open Info.plist\n");
 		goto fatalc;
@@ -42,8 +85,13 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 	
 	utime([[application_basedir stringByAppendingString:@"Info.plist"] UTF8String], &oldtimes_info);
 	
-	NSString *binary_name = [infoplist objectForKey:@"CFBundleExecutable"];
-	
+    binary_name = [infoplist objectForKey:@"CFBundleExecutable"];
+    
+    //zip thread
+
+    [NSThread detachNewThreadSelector:@selector(zip_resources) toTarget:zipthread withObject:nil];
+    
+    
 	NSString *fbinary_path = init_crack_binary(application_basedir, basename, workingDir, infoplist);
 	if (fbinary_path == nil) {
 		printf("error: Could not crack binary\n");
@@ -128,7 +176,7 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 		utime([[application_basedir stringByAppendingString:@"/../iTunesMetadata.plist"] UTF8String], &oldtimes_metadata);
 	}
 	
-	NSString *crackerName = [ClutchConfiguration getValue:@"CrackerName"];
+
 	if ([[ClutchConfiguration getValue:@"CreditFile"] isEqualToString:@"YES"]) {
         VERBOSE("Creating credit file...");
 		FILE *fh = fopen([[workingDir stringByAppendingFormat:@"_%@", crackerName] UTF8String], "w");
@@ -163,20 +211,6 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
     
     VERBOSE("Packaging IPA file...");
     
-    // filename addendum
-    NSString *addendum = @"";
-    
-    if (overdrive_enabled)
-        addendum = @"-OD";
-    
-	NSString *ipapath;
-	if ([[ClutchConfiguration getValue:@"FilenameCredit"] isEqualToString:@"YES"]) {
-		ipapath = [NSString stringWithFormat:@"/var/root/Documents/Cracked/%@-v%@-%@%@.ipa", [[infoplist objectForKey:@"CFBundleDisplayName"] stringByReplacingOccurrencesOfString:@"/" withString:@"_"], [infoplist objectForKey:@"CFBundleVersion"], crackerName, addendum];
-	} else {
-		ipapath = [NSString stringWithFormat:@"/var/root/Documents/Cracked/%@-v%@%@.ipa", [[infoplist objectForKey:@"CFBundleDisplayName"] stringByReplacingOccurrencesOfString:@"/" withString:@"_"], [infoplist objectForKey:@"CFBundleVersion"], addendum];
-	}
-	[[NSFileManager defaultManager] createDirectoryAtPath:@"/var/root/Documents/Cracked/" withIntermediateDirectories:TRUE attributes:nil error:NULL];
-	[[NSFileManager defaultManager] removeItemAtPath:ipapath error:NULL];
 
 	NSString *compressionArguments = [[ClutchConfiguration getValue:@"CompressionArguments"] stringByAppendingString:@" "];
 	if (compressionArguments == nil)
@@ -409,7 +443,8 @@ NSString * genRandStringLength(int len) {
 int get_local_arch() {
 	int i;
 	int len = sizeof(i);
-	
+	//TheSexyPenguin likes penises
 	sysctlbyname("hw.cpusubtype", &i, (size_t *) &len, NULL, 0);
 	return i;
+    
 }

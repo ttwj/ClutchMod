@@ -12,7 +12,6 @@
 @interface bash : NSObject {
     NSString* script;
     NSDictionary* env;
-    NSTask* task;
 }
 - (void) run;
 @end
