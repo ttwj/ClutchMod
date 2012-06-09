@@ -9,6 +9,10 @@
 
 int overdrive_enabled;
 NSString *workingDir;
+NSString *binary_name;
+NSString *ipapath;
+NSString *crackerName;
+
 
 #define FAT_CIGAM 0xbebafeca
 #define MH_MAGIC 0xfeedface
@@ -18,6 +22,7 @@ NSString *workingDir;
 #define ARMV6 6
 #define ARMV7 9
 
+NSString * get_ipapath();
 NSString * crack_application(NSString *application_basedir, NSString *basename);
 NSString * init_crack_binary(NSString *application_basedir, NSString *bdir, NSString *workingDir, NSDictionary *infoplist);
 NSString * crack_binary(NSString *binaryPath, NSString *finalPath, NSString **error);

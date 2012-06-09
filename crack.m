@@ -8,21 +8,28 @@ NSString *workingDir = @"";
 NSString *binary_name = @"";
 NSString *ipapath = @"";
 NSString *crackerName = @"";
+NSString *application_base = @"";
 
 NSMutableDictionary *infoplist;
-NSThread *zipthread;
 
-void zip_resources(NSString *dir, NSString *zip) {
-        NOTIFY("Compressing original app...");
+
+void *zip_resources() {
+    NSString *zip = get_ipapath();
+    NOTIFY("Compressing original app...");
 	NSString *compressionArguments = [[ClutchConfiguration getValue:@"CompressionArguments"] stringByAppendingString:@" "];
 	if (compressionArguments == nil)
 		compressionArguments = @"-0 ";
-    
-    [[NSFileManager defaultManager] createSymbolicLinkAtPath:[workingDir stringByAppendingString:@"Payload"] withDestinationPath:[dir stringByAppendingString:@"/../"] error:NULL];
-    
-	system([[NSString stringWithFormat:@"cd %@; zip %@-u -y -r -n .jpg:.JPG:.jpeg:.png:.PNG:.gif:.GIF:.Z:.gz:.zip:.zoo:.arc:.lzh:.rar:.arj:.mp3:.mp4:.m4a:.m4v:.ogg:.ogv:.avi:.flac:.aac \"%@\" Payload/* -x Payload/iTunesArtwork Payload/iTunesMetadata.plist \"Payload/Documents/*\" \"Payload/Library/*\" \"Payload/tmp/*\" \"Payload/*/%@\" \"Payload/*/SC_Info/*\" 2>&1> /dev/null", workingDir, zip, binary_name] UTF8String]);
+    NSLog(@"working dir: %@\n app dir: %@", [workingDir stringByAppendingString:@"Payload"], [application_base stringByAppendingString:@"/../"]); 
+    NSError* error = nil;
+    [[NSFileManager defaultManager] createSymbolicLinkAtPath:[workingDir stringByAppendingString:@"Payload"] withDestinationPath:[application_base stringByAppendingString:@"/../"] error:&error];
+    NSLog(@"%@", [error localizedDescription]);
+    NSLog(@"no segfault here bro");
+    NSLog(@"working %@ zip %@ binary %@", workingDir, zip, binary_name);
+	system([[NSString stringWithFormat:@"cd %@; zip %@-u -y -r -n .jpg:.JPG:.jpeg:.png:.PNG:.gif:.GIF:.Z:.gz:.zip:.zoo:.arc:.lzh:.rar:.arj:.mp3:.mp4:.m4a:.m4v:.ogg:.ogv:.avi:.flac:.aac \"%@\" Payload/* -x Payload/iTunesArtwork Payload/iTunesMetadata.plist \"Payload/Documents/*\" \"Payload/Library/*\" \"Payload/tmp/*\" \"Payload/*/%@\" \"Payload/*/SC_Info/*\" 2>&1> /dev/null", compressionArguments workingDir, zip, binary_name] UTF8String]);
     //I love you dissident
     [[NSFileManager defaultManager] removeItemAtPath:[workingDir stringByAppendingString:@"Payload"] error: NULL]; //I hope this doesn't remove the entire folder...
+    NSLog(@"Zip path: %@", zip);
+    return 0;
 }
 NSString * get_ipapath() {
     if (ipapath.length > 1) {
@@ -41,10 +48,12 @@ NSString * get_ipapath() {
 	}
 	[[NSFileManager defaultManager] createDirectoryAtPath:@"/var/root/Documents/Cracked/" withIntermediateDirectories:TRUE attributes:nil error:NULL];
 	[[NSFileManager defaultManager] removeItemAtPath:ipapath error:NULL];
+    NSLog(@"IPA Path %@", ipapath);
     return ipapath;
 
 }
 NSString * crack_application(NSString *application_basedir, NSString *basename) {
+    application_base = application_basedir;
     crackerName = [ClutchConfiguration getValue:@"CrackerName"];
     VERBOSE("Creating working directory...");
 	workingDir = [NSString stringWithFormat:@"%@%@/", @"/tmp/clutch_", genRandStringLength(8)];
@@ -88,9 +97,19 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
     binary_name = [infoplist objectForKey:@"CFBundleExecutable"];
     
     //zip thread
-
-    [NSThread detachNewThreadSelector:@selector(zip_resources) toTarget:zipthread withObject:nil];
+    /*pthread_t zip_thread;
+    if (pthread_create(&zip_thread, NULL, &zip_resources, NULL)) {
+        printf("error: Could not prepare zip thread\n");
+        goto fatalc;
+    }
+    */
+    zip_resources();
+    if (ipapath.length < 1) {
+        printf("error: Could not prepare IPA directory\n");
+        goto fatalc; 
+    }
     
+    NSLog(@"cracking binary %@ %@ %@ %@", application_basedir, basename, workingDir, infoplist);
     
 	NSString *fbinary_path = init_crack_binary(application_basedir, basename, workingDir, infoplist);
 	if (fbinary_path == nil) {
@@ -230,13 +249,16 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 //    
 	
     stop_bar();
-    
-	[[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
+    NSLog(@"hi %@", ipapath);
+	//[[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
 	return ipapath;
 	
 fatalc:
-	[[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
-	return nil;
+    @autoreleasepool {
+        [[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
+        return nil;
+    } //lazy
+	
 }
 
 NSString * init_crack_binary(NSString *application_basedir, NSString *bdir, NSString *workingDir, NSDictionary *infoplist) {
