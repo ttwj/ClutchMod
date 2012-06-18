@@ -9,7 +9,6 @@
 #import "applist.h"
 #import "crack.h"
 #import <unistd.h>
-#import <Foundation/Foundation.h>
 
 int main(int argc, char *argv[]) {
     int retVal = 0;
@@ -88,7 +87,11 @@ int main(int argc, char *argv[]) {
 		printf("Caches cleared.\n");
 	} else if (strncmp(argv[1], "-v", 2) == 0) {
 		printf("%s\n", CLUTCH_VERSION);
-	} else {
+	} else if (strncmp(argv[1], "-update", 7) == 0) {
+        
+    } else if (strncmp(argv[1], "-h", 2) == 0) {
+        goto help;
+    } else {
 		BOOL numberMenu = [(NSString *)[ClutchConfiguration getValue:@"NumberBasedMenu"] isEqualToString:@"YES"];
 		NSArray *applist;
 		if (numberMenu)
@@ -139,7 +142,11 @@ int main(int argc, char *argv[]) {
                 if (!strcmp(argv[i], "--overdrive")) {
                     printf("Overdrive is enabled.\n");
                     overdrive_enabled = 1;
-                } else {
+                }
+                else if (!strcmp(argv[i], "--armv7")) {
+                    only_armv7 = 1;
+                }
+                else {
                     printf("error: Unrecognized application \"%s\"\n", argv[i]);
                 }
 			}
@@ -149,5 +156,11 @@ int main(int argc, char *argv[]) {
 	
 endMain:
 	return retVal;
+    [pool release];
+help:
+    printf("ClutchMod help\n");
+    printf("--          Cracks all applications\n");
+    printf("-f          Clears cache\n");
+    printf("-v          Shows version\n");
     [pool release];
 }

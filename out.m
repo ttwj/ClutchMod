@@ -1,5 +1,4 @@
 #import "out.h"
-#import <Foundation/Foundation.h>
 
 int determine_screen_width (void) {
     int fd;

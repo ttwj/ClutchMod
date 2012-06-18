@@ -1,62 +1,12 @@
 #import "crack.h"
-#import <Foundation/Foundation.h>
-
-#include <pthread.h>
 
 int overdrive_enabled = 0;
-NSString *workingDir = @"";
-NSString *binary_name = @"";
-NSString *ipapath = @"";
-NSString *crackerName = @"";
-NSString *application_base = @"";
+int only_armv7 = 0;
+int only_armv6 = 0;
 
-NSMutableDictionary *infoplist;
-
-
-void *zip_resources() {
-    NSString *zip = get_ipapath();
-    NOTIFY("Compressing original app...");
-	NSString *compressionArguments = [[ClutchConfiguration getValue:@"CompressionArguments"] stringByAppendingString:@" "];
-	if (compressionArguments == nil)
-		compressionArguments = @"-0 ";
-    NSLog(@"working dir: %@\n app dir: %@", [workingDir stringByAppendingString:@"Payload"], [application_base stringByAppendingString:@"/../"]); 
-    NSError* error = nil;
-    [[NSFileManager defaultManager] createSymbolicLinkAtPath:[workingDir stringByAppendingString:@"Payload"] withDestinationPath:[application_base stringByAppendingString:@"/../"] error:&error];
-    NSLog(@"%@", [error localizedDescription]);
-    NSLog(@"no segfault here bro");
-    NSLog(@"working %@ zip %@ binary %@", workingDir, zip, binary_name);
-	system([[NSString stringWithFormat:@"cd %@; zip %@-u -y -r -n .jpg:.JPG:.jpeg:.png:.PNG:.gif:.GIF:.Z:.gz:.zip:.zoo:.arc:.lzh:.rar:.arj:.mp3:.mp4:.m4a:.m4v:.ogg:.ogv:.avi:.flac:.aac \"%@\" Payload/* -x Payload/iTunesArtwork Payload/iTunesMetadata.plist \"Payload/Documents/*\" \"Payload/Library/*\" \"Payload/tmp/*\" \"Payload/*/%@\" \"Payload/*/SC_Info/*\" 2>&1> /dev/null", compressionArguments workingDir, zip, binary_name] UTF8String]);
-    //I love you dissident
-    [[NSFileManager defaultManager] removeItemAtPath:[workingDir stringByAppendingString:@"Payload"] error: NULL]; //I hope this doesn't remove the entire folder...
-    NSLog(@"Zip path: %@", zip);
-    return 0;
-}
-NSString * get_ipapath() {
-    if (ipapath.length > 1) {
-        return ipapath;
-    }
-    // filename addendum
-    NSString *addendum = @"";
-    
-    if (overdrive_enabled)
-        addendum = @"-OD";
-    
-	if ([[ClutchConfiguration getValue:@"FilenameCredit"] isEqualToString:@"YES"]) {
-		ipapath = [NSString stringWithFormat:@"/var/root/Documents/Cracked/%@-v%@-%@%@.ipa", [[infoplist objectForKey:@"CFBundleDisplayName"] stringByReplacingOccurrencesOfString:@"/" withString:@"_"], [infoplist objectForKey:@"CFBundleVersion"], crackerName, addendum];
-	} else {
-		ipapath = [NSString stringWithFormat:@"/var/root/Documents/Cracked/%@-v%@%@.ipa", [[infoplist objectForKey:@"CFBundleDisplayName"] stringByReplacingOccurrencesOfString:@"/" withString:@"_"], [infoplist objectForKey:@"CFBundleVersion"], addendum];
-	}
-	[[NSFileManager defaultManager] createDirectoryAtPath:@"/var/root/Documents/Cracked/" withIntermediateDirectories:TRUE attributes:nil error:NULL];
-	[[NSFileManager defaultManager] removeItemAtPath:ipapath error:NULL];
-    NSLog(@"IPA Path %@", ipapath);
-    return ipapath;
-
-}
 NSString * crack_application(NSString *application_basedir, NSString *basename) {
-    application_base = application_basedir;
-    crackerName = [ClutchConfiguration getValue:@"CrackerName"];
     VERBOSE("Creating working directory...");
-	workingDir = [NSString stringWithFormat:@"%@%@/", @"/tmp/clutch_", genRandStringLength(8)];
+	NSString *workingDir = [NSString stringWithFormat:@"%@%@/", @"/tmp/clutch_", genRandStringLength(8)];
 	if (![[NSFileManager defaultManager] createDirectoryAtPath:[workingDir stringByAppendingFormat:@"Payload/%@", basename] withIntermediateDirectories:YES attributes:[NSDictionary
 			dictionaryWithObjects:[NSArray arrayWithObjects:@"mobile", @"mobile", nil]
 			forKeys:[NSArray arrayWithObjects:@"NSFileOwnerAccountName", @"NSFileGroupOwnerAccountName", nil]
@@ -65,7 +15,6 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 		return nil;
 	}
 	
-    
     VERBOSE("Performing initial analysis...");
 	struct stat statbuf_info;
 	stat([[application_basedir stringByAppendingString:@"Info.plist"] UTF8String], &statbuf_info);
@@ -75,7 +24,7 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 	oldtimes_info.actime = ist_atime;
 	oldtimes_info.modtime = ist_mtime;
 	
-	infoplist = [NSMutableDictionary dictionaryWithContentsOfFile:[application_basedir stringByAppendingString:@"Info.plist"]];
+	NSMutableDictionary *infoplist = [NSMutableDictionary dictionaryWithContentsOfFile:[application_basedir stringByAppendingString:@"Info.plist"]];
 	if (infoplist == nil) {
 		printf("error: Could not open Info.plist\n");
 		goto fatalc;
@@ -94,23 +43,8 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 	
 	utime([[application_basedir stringByAppendingString:@"Info.plist"] UTF8String], &oldtimes_info);
 	
-    binary_name = [infoplist objectForKey:@"CFBundleExecutable"];
-    
-    //zip thread
-    /*pthread_t zip_thread;
-    if (pthread_create(&zip_thread, NULL, &zip_resources, NULL)) {
-        printf("error: Could not prepare zip thread\n");
-        goto fatalc;
-    }
-    */
-    zip_resources();
-    if (ipapath.length < 1) {
-        printf("error: Could not prepare IPA directory\n");
-        goto fatalc; 
-    }
-    
-    NSLog(@"cracking binary %@ %@ %@ %@", application_basedir, basename, workingDir, infoplist);
-    
+	NSString *binary_name = [infoplist objectForKey:@"CFBundleExecutable"];
+	
 	NSString *fbinary_path = init_crack_binary(application_basedir, basename, workingDir, infoplist);
 	if (fbinary_path == nil) {
 		printf("error: Could not crack binary\n");
@@ -195,7 +129,7 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 		utime([[application_basedir stringByAppendingString:@"/../iTunesMetadata.plist"] UTF8String], &oldtimes_metadata);
 	}
 	
-
+	NSString *crackerName = [ClutchConfiguration getValue:@"CrackerName"];
 	if ([[ClutchConfiguration getValue:@"CreditFile"] isEqualToString:@"YES"]) {
         VERBOSE("Creating credit file...");
 		FILE *fh = fopen([[workingDir stringByAppendingFormat:@"_%@", crackerName] UTF8String], "w");
@@ -230,35 +164,44 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
     
     VERBOSE("Packaging IPA file...");
     
+    // filename addendum
+    NSString *addendum = @"";
+    
+    if (overdrive_enabled)
+        addendum = @"-OD";
+    
+	NSString *ipapath;
+	if ([[ClutchConfiguration getValue:@"FilenameCredit"] isEqualToString:@"YES"]) {
+		ipapath = [NSString stringWithFormat:@"/var/root/Documents/Cracked/%@-v%@-%@%@.ipa", [[infoplist objectForKey:@"CFBundleDisplayName"] stringByReplacingOccurrencesOfString:@"/" withString:@"_"], [infoplist objectForKey:@"CFBundleVersion"], crackerName, addendum];
+	} else {
+		ipapath = [NSString stringWithFormat:@"/var/root/Documents/Cracked/%@-v%@%@.ipa", [[infoplist objectForKey:@"CFBundleDisplayName"] stringByReplacingOccurrencesOfString:@"/" withString:@"_"], [infoplist objectForKey:@"CFBundleVersion"], addendum];
+	}
+	[[NSFileManager defaultManager] createDirectoryAtPath:@"/var/root/Documents/Cracked/" withIntermediateDirectories:TRUE attributes:nil error:NULL];
+	[[NSFileManager defaultManager] removeItemAtPath:ipapath error:NULL];
 
 	NSString *compressionArguments = [[ClutchConfiguration getValue:@"CompressionArguments"] stringByAppendingString:@" "];
 	if (compressionArguments == nil)
 		compressionArguments = @"";
     
-    NOTIFY("Compressing payload...");
+    NOTIFY("Compressing first stage resources (1/2)...");
     
 	system([[NSString stringWithFormat:@"cd %@; zip %@-m -r \"%@\" * 2>&1> /dev/null", workingDir, compressionArguments, ipapath] UTF8String]);
 	[[NSFileManager defaultManager] moveItemAtPath:[workingDir stringByAppendingString:@"Payload"] toPath:[workingDir stringByAppendingString:@"Payload_1"] error:NULL];
     
-  
-//     NOTIFY("Compressing second stage payload (2/2)...");
-//    
-//	[[NSFileManager defaultManager] createSymbolicLinkAtPath:[workingDir stringByAppendingString:@"Payload"] withDestinationPath:[application_basedir stringByAppendingString:@"/../"] error:NULL];
-//    
-//	system([[NSString stringWithFormat:@"cd %@; zip %@-u -y -r -n .jpg:.JPG:.jpeg:.png:.PNG:.gif:.GIF:.Z:.gz:.zip:.zoo:.arc:.lzh:.rar:.arj:.mp3:.mp4:.m4a:.m4v:.ogg:.ogv:.avi:.flac:.aac \"%@\" Payload/* -x Payload/iTunesArtwork Payload/iTunesMetadata.plist \"Payload/Documents/*\" \"Payload/Library/*\" \"Payload/tmp/*\" \"Payload/*/%@\" \"Payload/*/SC_Info/*\" 2>&1> /dev/null", workingDir, compressionArguments, ipapath, binary_name] UTF8String]);
-//    
+    NOTIFY("Compressing second stage payload (2/2)...");
+    
+	[[NSFileManager defaultManager] createSymbolicLinkAtPath:[workingDir stringByAppendingString:@"Payload"] withDestinationPath:[application_basedir stringByAppendingString:@"/../"] error:NULL];
+    
+	system([[NSString stringWithFormat:@"cd %@; zip %@-u -y -r -n .jpg:.JPG:.jpeg:.png:.PNG:.gif:.GIF:.Z:.gz:.zip:.zoo:.arc:.lzh:.rar:.arj:.mp3:.mp4:.m4a:.m4v:.ogg:.ogv:.avi:.flac:.aac \"%@\" Payload/* -x Payload/iTunesArtwork Payload/iTunesMetadata.plist \"Payload/Documents/*\" \"Payload/Library/*\" \"Payload/tmp/*\" \"Payload/*/%@\" \"Payload/*/SC_Info/*\" 2>&1> /dev/null", workingDir, compressionArguments, ipapath, binary_name] UTF8String]);
 	
     stop_bar();
-    NSLog(@"hi %@", ipapath);
-	//[[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
+    
+	[[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
 	return ipapath;
 	
 fatalc:
-    @autoreleasepool {
-        [[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
-        return nil;
-    } //lazy
-	
+	[[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
+	return nil;
 }
 
 NSString * init_crack_binary(NSString *application_basedir, NSString *bdir, NSString *workingDir, NSDictionary *infoplist) {
@@ -322,8 +265,54 @@ NSString * crack_binary(NSString *binaryPath, NSString *finalPath, NSString **er
 		struct fat_arch armv6, armv7;
 		fread(&armv6, sizeof(struct fat_arch), 1, oldbinary);
 		fread(&armv7, sizeof(struct fat_arch), 1, oldbinary);
-		
-		if (local_arch != ARMV6) {
+		if (only_armv7 == 1) {
+            VERBOSE("Only dumping ARMV7 portion because you said so");
+            NOTIFY("Dumping ARMV7 portion...");
+			// we can only crack the armv7 portion
+			if (!dump_binary(oldbinary, newbinary, CFSwapInt32(armv7.offset), binaryPath)) {
+                stop_bar();
+				*error = @"Cannot crack ARMV7 portion.";
+				goto c_err;
+			}
+            stop_bar();
+			
+            VERBOSE("Performing liposuction of ARMV7 mach object...");
+			// lipo out the data
+			NSString *lipoPath = [NSString stringWithFormat:@"%@_l", finalPath]; // assign a new lipo path
+			FILE *lipoOut = fopen([lipoPath UTF8String], "w+"); // prepare the file stream
+			fseek(newbinary, CFSwapInt32(armv7.offset), SEEK_SET); // go to the armv6 offset
+			void *tmp_b = malloc(0x1000); // allocate a temporary buffer
+			
+			uint32_t remain = CFSwapInt32(armv7.size);
+			
+			while (remain > 0) {
+				if (remain > 0x1000) {
+					// move over 0x1000
+					fread(tmp_b, 0x1000, 1, newbinary);
+					fwrite(tmp_b, 0x1000, 1, lipoOut);
+					remain -= 0x1000;
+				} else {
+					// move over remaining and break
+					fread(tmp_b, remain, 1, newbinary);
+					fwrite(tmp_b, remain, 1, lipoOut);
+					break;
+				}
+			}
+			
+			free(tmp_b); // free temporary buffer
+			fclose(lipoOut); // close lipo output stream
+			fclose(newbinary); // close new binary stream
+			fclose(oldbinary); // close old binary stream
+			
+			[[NSFileManager defaultManager] removeItemAtPath:finalPath error:NULL]; // remove old file
+			[[NSFileManager defaultManager] moveItemAtPath:lipoPath toPath:finalPath error:NULL]; // move the lipo'd binary to the final path
+			chown([finalPath UTF8String], 501, 501); // adjust permissions
+			chmod([finalPath UTF8String], 0777); // adjust permissions
+			
+			return finalPath;
+
+        }
+		else if (local_arch != ARMV6) {
             VERBOSE("Application is a fat binary, cracking both architectures...");
             NOTIFY("Dumping ARMV7 portion...");
             
@@ -467,8 +456,7 @@ NSString * genRandStringLength(int len) {
 int get_local_arch() {
 	int i;
 	int len = sizeof(i);
-	//TheSexyPenguin likes penises
+	
 	sysctlbyname("hw.cpusubtype", &i, (size_t *) &len, NULL, 0);
 	return i;
-    
 }

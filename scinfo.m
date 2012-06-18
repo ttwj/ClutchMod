@@ -3,9 +3,6 @@
  see http://hackulo.us/wiki/SC_Info
  */
 
-#include <stdint.h>
-#import <Foundation/Foundation.h>
-
 // create a SINF atom
 void *create_atom(char *name, int len, void *content) {
     uint32_t atomsize = len + 8;
