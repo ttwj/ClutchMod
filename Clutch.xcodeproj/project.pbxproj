@@ -44,6 +44,7 @@
 		AD2ABA541580A71D00146E30 /* Clutch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = Clutch.entitlements; sourceTree = "<group>"; };
 		AD2ABA581580FA9700146E30 /* CrackApp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CrackApp.h; sourceTree = "<group>"; };
 		AD2ABA591580FA9700146E30 /* CrackApp.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CrackApp.m; sourceTree = "<group>"; };
+		AD838DCC158F7FCE0044E042 /* NSTask.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NSTask.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -108,6 +109,7 @@
 				29B97316FDCFA39411CA2CEA /* main.m */,
 				41E0DFD1123823030068268F /* applist.h */,
 				41E0DFD2123823030068268F /* applist.m */,
+				AD838DCC158F7FCE0044E042 /* NSTask.h */,
 			);
 			name = "Other Sources";
 			sourceTree = "<group>";
@@ -210,7 +212,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "export CODESIGN_ALLOCATE=/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/codesign_allocate\nif [ \"${PLATFORM_NAME}\" == \"iphoneos\" ]; then\n/Users/ttwj/entitlements/gen_entitlements.py \"us.hackulo.${PROJECT_NAME}\" \"${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/${PROJECT_NAME}.xcent\";\ncodesign -f -s \"iPhone Developer\" --entitlements \"/Users/ttwj/Clutch/Clutch.entitlements\" \"${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/\"\nfi";
+			shellScript = "export CODESIGN_ALLOCATE=/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/codesign_allocate\nif [ \"${PLATFORM_NAME}\" == \"iphoneos\" ]; then\n/Users/ttwj/entitlements/gen_entitlements.py \"us.hackulo.${PROJECT_NAME}\" \"${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/${PROJECT_NAME}.xcent\";\n# whoops remove my name\ncodesign -f -s \"iPhone Developer\" --entitlements \"/Users/ttwj/Clutch/Clutch.entitlements\" \"${BUILT_PRODUCTS_DIR}/${WRAPPER_NAME}/\"\nfi";
 		};
 /* End PBXShellScriptBuildPhase section */
 

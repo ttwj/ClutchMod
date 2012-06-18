@@ -10,6 +10,8 @@
 int overdrive_enabled;
 int only_armv7;
 int only_armv6;
+int bash;
+NSString *bash_script;
 
 #define FAT_CIGAM 0xbebafeca
 #define MH_MAGIC 0xfeedface

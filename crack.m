@@ -1,8 +1,11 @@
 #import "crack.h"
+#import <Foundation/Foundation.h>
+#import "NSTask.h"
 
 int overdrive_enabled = 0;
 int only_armv7 = 0;
 int only_armv6 = 0;
+int bash = 0;
 
 NSString * crack_application(NSString *application_basedir, NSString *basename) {
     VERBOSE("Creating working directory...");
@@ -169,6 +172,7 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
     
     if (overdrive_enabled)
         addendum = @"-OD";
+
     
 	NSString *ipapath;
 	if ([[ClutchConfiguration getValue:@"FilenameCredit"] isEqualToString:@"YES"]) {
@@ -178,8 +182,43 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 	}
 	[[NSFileManager defaultManager] createDirectoryAtPath:@"/var/root/Documents/Cracked/" withIntermediateDirectories:TRUE attributes:nil error:NULL];
 	[[NSFileManager defaultManager] removeItemAtPath:ipapath error:NULL];
-
+    
 	NSString *compressionArguments = [[ClutchConfiguration getValue:@"CompressionArguments"] stringByAppendingString:@" "];
+    
+    if (bash) {
+        //BASH!!11!!
+        
+        NSDictionary *environment = [NSDictionary dictionaryWithObjectsAndKeys:
+                                     @"ipapath", ipapath,
+                                     @"CompressionArguments", compressionArguments,
+                                     @"appname", [infoplist objectForKey:@"CFBundleDisplayName"],
+                                     @"appversion", [infoplist objectForKey:@"CFBundleVersion"],
+                                     nil];
+        
+        NSTask * bash = [[NSTask alloc] init];
+        [bash setLaunchPath:@"/bin/bash"];
+        [bash setCurrentDirectoryPath:@"/"];
+        NSPipe * out = [NSPipe pipe];
+        [bash setStandardOutput:out];
+        [bash setEnvironment:environment];
+        
+        [bash launch];
+        [bash waitUntilExit];
+        [bash release];
+        
+        NSFileHandle * read = [out fileHandleForReading];
+        NSData * dataRead = [read readDataToEndOfFile];
+        NSString * stringRead = [[[NSString alloc] initWithData:dataRead encoding:NSUTF8StringEncoding] autorelease];
+        NSArray* dataArray = [stringRead componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]];
+        for (NSString *string in dataArray) {
+            NSArray *split = [string componentsSeparatedByString:[NSCharacterSet whitespaceCharacterSet]];
+            if ([[split objectAtIndex:0] isEqualToString:@"ipapath"]) {
+                ipapath = [split objectAtIndex:1];
+            }
+        }
+        NSLog(@"output: %@", stringRead);        
+    }
+    
 	if (compressionArguments == nil)
 		compressionArguments = @"";
     
