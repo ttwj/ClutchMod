@@ -21,7 +21,7 @@ ZipArchive * createZip(NSString *file) {
     [archiver CreateZipFile2:file];
     return archiver;
 }
-void zip(ZipArchive *archiver, NSString *folder, int compression) {
+void zip(ZipArchive *archiver, NSString *folder) {
     BOOL isDir=NO;	
     NSArray *subpaths;	
     int total = 0;
@@ -39,13 +39,13 @@ void zip(ZipArchive *archiver, NSString *folder, int compression) {
         // Only add it if it's not a directory. ZipArchive will take care of those.
         NSString *longPath = [folder stringByAppendingPathComponent:path];
         if([fileManager fileExistsAtPath:longPath isDirectory:&isDir] && !isDir){
-            [archiver addFileToZip:longPath newname:path compression:compression];	
+            [archiver addFileToZip:longPath newname:path compression:compression_level];	
         }
     }
     return;
 }
 
-void zip_original(ZipArchive *archiver, NSString *folder, NSString *binary, int compression) {
+void zip_original(ZipArchive *archiver, NSString *folder, NSString *binary) {
     BOOL isDir=NO;	
     NSArray *subpaths;	
     int total = 0;
@@ -64,16 +64,14 @@ void zip_original(ZipArchive *archiver, NSString *folder, NSString *binary, int 
             // Only add it if it's not a directory. ZipArchive will take care of those.
             NSString *longPath = [folder stringByAppendingPathComponent:path];
             if([fileManager fileExistsAtPath:longPath isDirectory:&isDir] && !isDir){
-                NSString* thepath = [NSString stringWithFormat:@"Payload/%@", path];
-                //NSLog(@"adding longpath: %@ shortpath: %@", longPath, thepath);
-                [archiver addFileToZip:longPath newname:thepath compression:compression];
+                [archiver addFileToZip:longPath newname:[NSString stringWithFormat:@"Payload/%@", path] compression:compression_level];
             }
         }
     }
     return;
 }
 
-NSString * crack_application(NSString *application_basedir, NSString *basename) {
+NSString * crack_application(NSString *application_basedir, NSString *basename, NSString *version) {
     VERBOSE("Creating working directory...");
 	NSString *workingDir = [NSString stringWithFormat:@"%@%@/", @"/tmp/clutch_", genRandStringLength(8)];
 	if (![[NSFileManager defaultManager] createDirectoryAtPath:[workingDir stringByAppendingFormat:@"Payload/%@", basename] withIntermediateDirectories:YES attributes:[NSDictionary
@@ -296,12 +294,11 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
     NOTIFY("Compressing original application (1/2)...");
     ZipArchive *archiver = [[ZipArchive alloc] init];
     [archiver CreateZipFile2:ipapath];
-    NSLog(@"%@", application_basedir);
-    zip_original(archiver, [application_basedir stringByAppendingString:@"../"], binary_name, compression_level);
+    zip_original(archiver, [application_basedir stringByAppendingString:@"../"], binary_name);
     stop_bar();
     
     NOTIFY("Compressing cracked application (2/2)..");
-    zip(archiver, workingDir, compression_level);
+    zip(archiver, workingDir);
     stop_bar();
     /*
     //add symlink
@@ -332,12 +329,24 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 //	
     [archiver release];
     
-	//[[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
+    NSMutableDictionary *dict;
+    if ([[NSFileManager defaultManager] fileExistsAtPath:@"/etc/clutch_cracked.plist"]) {
+        dict = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/etc/clutch_cracked.plist"];
+    }
+    else {
+        [[NSFileManager defaultManager] createFileAtPath:@"/etc/clutch_cracked.plist" contents:nil attributes:nil];
+        dict = [[NSMutableDictionary alloc] init];
+    }
+    [dict setObject:version forKey: [infoplist objectForKey:@"CFBundleDisplayName"]];
+    [dict writeToFile:@"/etc/clutch_cracked.plist" atomically:YES];
+	[[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
+    [dict release];
 	return ipapath;
 	
-fatalc:
+fatalc: {
 	[[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
 	return nil;
+}
 }
 
 NSString * init_crack_binary(NSString *application_basedir, NSString *bdir, NSString *workingDir, NSDictionary *infoplist) {
@@ -402,6 +411,10 @@ NSString * crack_binary(NSString *binaryPath, NSString *finalPath, NSString **er
 		fread(&armv6, sizeof(struct fat_arch), 1, oldbinary);
 		fread(&armv7, sizeof(struct fat_arch), 1, oldbinary);
 		if (only_armv7 == 1) {
+            if (local_arch == ARMV6) {
+                *error = @"You are not using an ARMV7 device";
+                goto c_err;
+            }
             VERBOSE("Only dumping ARMV7 portion because you said so");
             NOTIFY("Dumping ARMV7 portion...");
 			// we can only crack the armv7 portion
@@ -569,9 +582,7 @@ NSString * crack_binary(NSString *binaryPath, NSString *finalPath, NSString **er
 	
 	fclose(newbinary); // close the new binary stream
 	fclose(oldbinary); // close the old binary stream
-    
-    NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/etc/clutch_cracked.plist"];
-    [dict setObject:binaryPath forKey:<#(id)#>
+
 	return finalPath; // return cracked binary path
 	
 c_err:

@@ -75,14 +75,14 @@ int main(int argc, char *argv[]) {
 		
 		while (applicationDetails = [e nextObject]) {
 			printf("Cracking %s...\n", [[applicationDetails objectForKey:@"ApplicationName"] UTF8String]);
-			ipapath = crack_application([applicationDetails objectForKey:@"ApplicationDirectory"], [applicationDetails objectForKey:@"ApplicationBasename"]);
+			ipapath = crack_application([applicationDetails objectForKey:@"ApplicationDirectory"], [applicationDetails objectForKey:@"ApplicationBasename"], [applicationDetails objectForKey:@"ApplicationVersion"]);
 			if (ipapath == nil) {
 				printf("Failed.\n");
 			} else {
 				printf("\t%s\n", [ipapath UTF8String]);
 			}
 		}
-	} else if (strncmp(argv[1], "-u", 2)) {
+	} else if (strncmp(argv[1], "-u", 2) == 0) {
         NSArray *applist = get_application_list(FALSE, TRUE);
         if (applist == NULL) {
             printf("There are no new applications on this device that aren't cracked.\n");
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
         
         while (applicationDetails = [e nextObject]) {
             printf("Cracking %s...\n", [[applicationDetails objectForKey:@"ApplicationName"] UTF8String]);
-            ipapath = crack_application([applicationDetails objectForKey:@"ApplicationDirectory"], [applicationDetails objectForKey:@"ApplicationBasename"]);
+            ipapath = crack_application([applicationDetails objectForKey:@"ApplicationDirectory"], [applicationDetails objectForKey:@"ApplicationBasename"], [applicationDetails objectForKey:@"ApplicationVersion"]);
             if (ipapath == nil) {
                 printf("Failed.\n");
             } else {
@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
 					inCrackRoutine:
 					cracked = TRUE;
 					printf("Cracking %s...\n", [[applicationDetails objectForKey:compareWith] UTF8String]);
-					ipapath = crack_application([applicationDetails objectForKey:@"ApplicationDirectory"], [applicationDetails objectForKey:@"ApplicationBasename"]);
+					ipapath = crack_application([applicationDetails objectForKey:@"ApplicationDirectory"], [applicationDetails objectForKey:@"ApplicationBasename"], [applicationDetails objectForKey:@"ApplicationVersion"]);
 					if (ipapath == nil) {
 						printf("Failed.\n");
 					} else {
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
                 else if (!strcmp(argv[i], "--script")) {
                     bash = 1;
                     NSLog(@"%@", argv[i]);
-                    bash_script = (NSString*) argv[i + 1];
+                    //bash_script = (NSString*) argv[i + 1];
                     NSLog(@"script %@", bash_script); 
                     if (![[NSFileManager defaultManager] fileExistsAtPath:bash_script]) {
                         printf("error: %s does not exist", [bash_script UTF8String]);
@@ -200,8 +200,14 @@ endMain:
     [pool release];
 help:
     printf("ClutchMod help\n");
+    printf("---------------------------------\n");
     printf("--          Cracks all applications\n");
+    printf("-u          Cracks updated applications\n");
     printf("-f          Clears cache\n");
     printf("-v          Shows version\n");
+    printf("\n");
+    printf("--[no|fast|best]-compression       Set the compression level\n");
+    printf("--armv7     Only cracks armv7 portion of fat binary\n");
+    
     [pool release];
 }

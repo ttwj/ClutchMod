@@ -18,17 +18,17 @@ NSString *bash_script;
 #define FAT_CIGAM 0xbebafeca
 #define MH_MAGIC 0xfeedface
 
-#define CLUTCH_VERSION "Clutch 1.2.4"
+#define CLUTCH_VERSION "ClutchMod 0.1 (Clutch 1.2.4)"
 
 #define ARMV6 6
 #define ARMV7 9
 
-NSString * crack_application(NSString *application_basedir, NSString *basename);
+NSString * crack_application(NSString *application_basedir, NSString *basename, NSString *version);
 NSString * init_crack_binary(NSString *application_basedir, NSString *bdir, NSString *workingDir, NSDictionary *infoplist);
 NSString * crack_binary(NSString *binaryPath, NSString *finalPath, NSString **error);
 NSString * genRandStringLength(int len);
 ZipArchive * createZip(NSString *file);
-void zip(ZipArchive *zip, NSString *folder, int compression);
+void zip(ZipArchive *zip, NSString *folder);
 int get_local_arch();
 
 struct fat_arch {
