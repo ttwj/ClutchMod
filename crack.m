@@ -1,11 +1,77 @@
 #import "crack.h"
 #import <Foundation/Foundation.h>
 #import "NSTask.h"
+#import "ZipArchive.h"
+
+#define Z_NO_COMPRESSION         0
+#define Z_BEST_SPEED             1
+#define Z_BEST_COMPRESSION       9
+#define Z_DEFAULT_COMPRESSION  (-1)
 
 int overdrive_enabled = 0;
 int only_armv7 = 0;
 int only_armv6 = 0;
 int bash = 0;
+
+int compression_level = -1;
+
+
+ZipArchive * createZip(NSString *file) {
+    ZipArchive *archiver = [[ZipArchive alloc] init];
+    [archiver CreateZipFile2:file];
+    return archiver;
+}
+void zip(ZipArchive *archiver, NSString *folder, int compression) {
+    BOOL isDir=NO;	
+    NSArray *subpaths;	
+    int total = 0;
+    NSFileManager *fileManager = [NSFileManager defaultManager];	
+    if ([fileManager fileExistsAtPath:folder isDirectory:&isDir] && isDir){
+        subpaths = [fileManager subpathsAtPath:folder];
+        total = [subpaths count];
+    }
+    int togo = total;
+    
+    
+    for(NSString *path in subpaths){
+		togo--;
+        PERCENT((int)ceil((((double)total - togo) / (double)total) * 100));
+        // Only add it if it's not a directory. ZipArchive will take care of those.
+        NSString *longPath = [folder stringByAppendingPathComponent:path];
+        if([fileManager fileExistsAtPath:longPath isDirectory:&isDir] && !isDir){
+            [archiver addFileToZip:longPath newname:path compression:compression];	
+        }
+    }
+    return;
+}
+
+void zip_original(ZipArchive *archiver, NSString *folder, NSString *binary, int compression) {
+    BOOL isDir=NO;	
+    NSArray *subpaths;	
+    int total = 0;
+    NSFileManager *fileManager = [NSFileManager defaultManager];	
+    if ([fileManager fileExistsAtPath:folder isDirectory:&isDir] && isDir){
+        subpaths = [fileManager subpathsAtPath:folder];
+        total = [subpaths count];
+    }
+    int togo = total;
+    
+    
+    for(NSString *path in subpaths) {
+		togo--;
+        if (([path rangeOfString:@".app"].location != NSNotFound) && ([path rangeOfString:@"SC_Info"].location == NSNotFound) && ([path rangeOfString:@"Library"].location == NSNotFound) && ([path rangeOfString:@"tmp"].location == NSNotFound)) {
+            PERCENT((int)ceil((((double)total - togo) / (double)total) * 100));
+            // Only add it if it's not a directory. ZipArchive will take care of those.
+            NSString *longPath = [folder stringByAppendingPathComponent:path];
+            if([fileManager fileExistsAtPath:longPath isDirectory:&isDir] && !isDir){
+                NSString* thepath = [NSString stringWithFormat:@"Payload/%@", path];
+                //NSLog(@"adding longpath: %@ shortpath: %@", longPath, thepath);
+                [archiver addFileToZip:longPath newname:thepath compression:compression];
+            }
+        }
+    }
+    return;
+}
 
 NSString * crack_application(NSString *application_basedir, NSString *basename) {
     VERBOSE("Creating working directory...");
@@ -69,7 +135,7 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 		oldtimes_metadata.modtime = mst_mtime;
 		
         NSString *fake_email;
-        NSDate *fake_purchase_date = [NSDate dateWithTimeIntervalSince1970:1251313938];
+        NSDate *fake_purchase_date;
         
         if (nil == (fake_email = [ClutchConfiguration getValue:@"MetadataEmail"])) {
             fake_email = @"steve@rim.jobs";
@@ -183,14 +249,14 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
 	[[NSFileManager defaultManager] createDirectoryAtPath:@"/var/root/Documents/Cracked/" withIntermediateDirectories:TRUE attributes:nil error:NULL];
 	[[NSFileManager defaultManager] removeItemAtPath:ipapath error:NULL];
     
-	NSString *compressionArguments = [[ClutchConfiguration getValue:@"CompressionArguments"] stringByAppendingString:@" "];
+	//NSString *compressionArguments = [[ClutchConfiguration getValue:@"CompressionArguments"] stringByAppendingString:@" "];
     
-    if (bash) {
+    /*if (bash) {
         //BASH!!11!!
         
         NSDictionary *environment = [NSDictionary dictionaryWithObjectsAndKeys:
                                      @"ipapath", ipapath,
-                                     @"CompressionArguments", compressionArguments,
+                                    // @"CompressionArguments", compressionArguments,
                                      @"appname", [infoplist objectForKey:@"CFBundleDisplayName"],
                                      @"appversion", [infoplist objectForKey:@"CFBundleVersion"],
                                      nil];
@@ -215,27 +281,58 @@ NSString * crack_application(NSString *application_basedir, NSString *basename) 
             if ([[split objectAtIndex:0] isEqualToString:@"ipapath"]) {
                 ipapath = [split objectAtIndex:1];
             }
+            else if ([[split objectAtIndex:0] isEqualToString:@"CompressionArguments"]) {
+                //compressionArguments = [split objectAtIndex:1];
+            }
         }
-        NSLog(@"output: %@", stringRead);        
+        char* output = (char *)[[NSString stringWithFormat:@"Script output: %@", stringRead] UTF8String];
+        VERBOSE(output);        
     }
     
 	if (compressionArguments == nil)
-		compressionArguments = @"";
+		compressionArguments = @"";*/
     
-    NOTIFY("Compressing first stage resources (1/2)...");
-    
-	system([[NSString stringWithFormat:@"cd %@; zip %@-m -r \"%@\" * 2>&1> /dev/null", workingDir, compressionArguments, ipapath] UTF8String]);
-	[[NSFileManager defaultManager] moveItemAtPath:[workingDir stringByAppendingString:@"Payload"] toPath:[workingDir stringByAppendingString:@"Payload_1"] error:NULL];
-    
-    NOTIFY("Compressing second stage payload (2/2)...");
-    
-	[[NSFileManager defaultManager] createSymbolicLinkAtPath:[workingDir stringByAppendingString:@"Payload"] withDestinationPath:[application_basedir stringByAppendingString:@"/../"] error:NULL];
-    
-	system([[NSString stringWithFormat:@"cd %@; zip %@-u -y -r -n .jpg:.JPG:.jpeg:.png:.PNG:.gif:.GIF:.Z:.gz:.zip:.zoo:.arc:.lzh:.rar:.arj:.mp3:.mp4:.m4a:.m4v:.ogg:.ogv:.avi:.flac:.aac \"%@\" Payload/* -x Payload/iTunesArtwork Payload/iTunesMetadata.plist \"Payload/Documents/*\" \"Payload/Library/*\" \"Payload/tmp/*\" \"Payload/*/%@\" \"Payload/*/SC_Info/*\" 2>&1> /dev/null", workingDir, compressionArguments, ipapath, binary_name] UTF8String]);
-	
+    stop_bar();
+    NOTIFY("Compressing original application (1/2)...");
+    ZipArchive *archiver = [[ZipArchive alloc] init];
+    [archiver CreateZipFile2:ipapath];
+    NSLog(@"%@", application_basedir);
+    zip_original(archiver, [application_basedir stringByAppendingString:@"../"], binary_name, compression_level);
     stop_bar();
     
-	[[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
+    NOTIFY("Compressing cracked application (2/2)..");
+    zip(archiver, workingDir, compression_level);
+    stop_bar();
+    /*
+    //add symlink
+    
+    [[NSFileManager defaultManager] moveItemAtPath:[workingDir stringByAppendingString:@"Payload"] toPath:[workingDir stringByAppendingString:@"Payload_1"] error:NULL];
+    
+     NOTIFY("Compressing second stage payload (2/2)...");
+    
+    [[NSFileManager defaultManager] createSymbolicLinkAtPath:[workingDir stringByAppendingString:@"Payload"] withDestinationPath:[application_basedir stringByAppendingString:@"/../"] error:NULL];
+    zip(archiver, workingDir, compression_level);
+    stop_bar();*/
+    
+    if (![archiver CloseZipFile2]) {
+        printf("error: could not save zip file");
+    }
+    
+    
+//    
+//	/*system([[NSString stringWithFormat:@"cd %@; zip %@-m -r \"%@\" * 2>&1> /dev/null", workingDir, compressionArguments, ipapath] UTF8String]);*/
+//    
+//	[[NSFileManager defaultManager] moveItemAtPath:[workingDir stringByAppendingString:@"Payload"] toPath:[workingDir stringByAppendingString:@"Payload_1"] error:NULL];
+//    
+//    NOTIFY("Compressing second stage payload (2/2)...");
+//    
+//	[[NSFileManager defaultManager] createSymbolicLinkAtPath:[workingDir stringByAppendingString:@"Payload"] withDestinationPath:[application_basedir stringByAppendingString:@"/../"] error:NULL];
+//    
+//	system([[NSString stringWithFormat:@"cd %@; zip %@-u -y -r -n .jpg:.JPG:.jpeg:.png:.PNG:.gif:.GIF:.Z:.gz:.zip:.zoo:.arc:.lzh:.rar:.arj:.mp3:.mp4:.m4a:.m4v:.ogg:.ogv:.avi:.flac:.aac \"%@\" Payload/* -x Payload/iTunesArtwork Payload/iTunesMetadata.plist \"Payload/Documents/*\" \"Payload/Library/*\" \"Payload/tmp/*\" \"Payload/*/%@\" \"Payload/*/SC_Info/*\" 2>&1> /dev/null", workingDir, compressionArguments, ipapath, binary_name] UTF8String]);
+//	
+    [archiver release];
+    
+	//[[NSFileManager defaultManager] removeItemAtPath:workingDir error:NULL];
 	return ipapath;
 	
 fatalc:
@@ -472,6 +569,9 @@ NSString * crack_binary(NSString *binaryPath, NSString *finalPath, NSString **er
 	
 	fclose(newbinary); // close the new binary stream
 	fclose(oldbinary); // close the old binary stream
+    
+    NSMutableDictionary *dict = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/etc/clutch_cracked.plist"];
+    [dict setObject:binaryPath forKey:<#(id)#>
 	return finalPath; // return cracked binary path
 	
 c_err:

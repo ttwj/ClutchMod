@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 	[ClutchConfiguration configWithFile:@"/etc/clutch.conf"];
     
 	if (argc < 2) {
-		NSArray *applist = get_application_list(TRUE);
+		NSArray *applist = get_application_list(TRUE, FALSE);
 		if (applist == NULL) {
 			printf("There are no encrypted applications on this device.\n");
 			goto endMain;
@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 	}
 	
 	if (strncmp(argv[1], "--", 3) == 0) {
-		NSArray *applist = get_application_list(FALSE);
+		NSArray *applist = get_application_list(FALSE, FALSE);
 		if (applist == NULL) {
 			printf("There are no encrypted applications on this device.\n");
 			goto endMain;
@@ -82,7 +82,28 @@ int main(int argc, char *argv[]) {
 				printf("\t%s\n", [ipapath UTF8String]);
 			}
 		}
-	} else if (strncmp(argv[1], "-f", 2) == 0) {
+	} else if (strncmp(argv[1], "-u", 2)) {
+        NSArray *applist = get_application_list(FALSE, TRUE);
+        if (applist == NULL) {
+            printf("There are no new applications on this device that aren't cracked.\n");
+            goto endMain;
+        }
+        NSEnumerator *e = [applist objectEnumerator];
+        printf("Cracking all updated applications on this device.\n");
+        
+        NSDictionary *applicationDetails;
+        NSString *ipapath;
+        
+        while (applicationDetails = [e nextObject]) {
+            printf("Cracking %s...\n", [[applicationDetails objectForKey:@"ApplicationName"] UTF8String]);
+            ipapath = crack_application([applicationDetails objectForKey:@"ApplicationDirectory"], [applicationDetails objectForKey:@"ApplicationBasename"]);
+            if (ipapath == nil) {
+                printf("Failed.\n");
+            } else {
+                printf("\t%s\n", [ipapath UTF8String]);
+            }
+        }
+    } else if (strncmp(argv[1], "-f", 2) == 0) {
 		[[NSFileManager defaultManager] removeItemAtPath:@"/var/cache/clutch.plist" error:NULL];
 		printf("Caches cleared.\n");
 	} else if (strncmp(argv[1], "-v", 2) == 0) {
@@ -95,9 +116,9 @@ int main(int argc, char *argv[]) {
 		BOOL numberMenu = [(NSString *)[ClutchConfiguration getValue:@"NumberBasedMenu"] isEqualToString:@"YES"];
 		NSArray *applist;
 		if (numberMenu)
-			applist = get_application_list(TRUE);
+			applist = get_application_list(TRUE, FALSE);
 		else
-			applist = get_application_list(FALSE);
+			applist = get_application_list(FALSE, FALSE);
 
 		if (applist == NULL) {
 			printf("There are no encrypted applications on this device.\n");
@@ -145,6 +166,26 @@ int main(int argc, char *argv[]) {
                 }
                 else if (!strcmp(argv[i], "--armv7")) {
                     only_armv7 = 1;
+                }
+                else if (!strcmp(argv[i], "--script")) {
+                    bash = 1;
+                    NSLog(@"%@", argv[i]);
+                    bash_script = (NSString*) argv[i + 1];
+                    NSLog(@"script %@", bash_script); 
+                    if (![[NSFileManager defaultManager] fileExistsAtPath:bash_script]) {
+                        printf("error: %s does not exist", [bash_script UTF8String]);
+                        goto endMain;
+                    }
+                }
+                else if (!strcmp(argv[i], "--no-compression")) {
+                    compression_level = 0;
+                }
+                else if (!strcmp(argv[i], "--fast-compression")) {
+                    compression_level = 1;
+                }
+                else if (!strcmp(argv[i], "--best-compression")) {
+                    compression_level = 9;
+                    printf("maximum compression set, might be slow!");
                 }
                 else {
                     printf("error: Unrecognized application \"%s\"\n", argv[i]);

@@ -1,6 +1,6 @@
 #import "applist.h"
 
-NSArray * get_application_list(BOOL sort) {
+NSArray * get_application_list(BOOL sort, BOOL updates) {
 	NSString *basePath = @"/var/mobile/Applications/";
 	NSMutableArray *returnArray = [[NSMutableArray alloc] init];
 	NSArray *apps = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:basePath error:NULL];
@@ -19,10 +19,18 @@ NSArray * get_application_list(BOOL sort) {
 		cache = [NSMutableDictionary dictionary];
 		cflush = TRUE;
 	}
-	
+    NSMutableDictionary *versions;
+	if (updates) {
+        if (![[NSFileManager defaultManager] fileExistsAtPath:@"/etc/clutch_cracked.plist"]) {
+            versions = [[NSMutableDictionary alloc] init];
+        }
+        else {
+            versions = [[NSMutableDictionary alloc] initWithContentsOfFile:@"/etc/clutch_cracked.plist"];
+        }
+    }
 	NSDictionary *applicationDetailObject;
-	NSString *bundleDisplayName, *applicationRealname;
-	
+	NSString *bundleDisplayName, *applicationRealname, *bundleVersionString;
+    
 	while (applicationDirectory = [e nextObject]) {
 		if ([cache objectForKey:applicationDirectory] != nil) {
 			[returnArray addObject:[cache objectForKey:applicationDirectory]];
@@ -35,6 +43,8 @@ NSArray * get_application_list(BOOL sort) {
 					continue;
 				else {
 					bundleDisplayName = [[NSDictionary dictionaryWithContentsOfFile:[basePath stringByAppendingFormat:@"%@/%@/Info.plist", applicationDirectory, applicationSubdirectory]] objectForKey:@"CFBundleDisplayName"];
+                    bundleVersionString = [[[NSDictionary dictionaryWithContentsOfFile:[basePath stringByAppendingFormat:@"%@/%@/Info.plist", applicationDirectory, applicationSubdirectory]] objectForKey:@"CFBundleVersionKey"] stringByReplacingOccurrencesOfString:@"." withString:@""];
+                    
 					applicationRealname = [applicationSubdirectory stringByReplacingOccurrencesOfString:@".app" withString:@""];
 					
 					if (bundleDisplayName == nil) {
@@ -50,7 +60,16 @@ NSArray * get_application_list(BOOL sort) {
 							applicationSubdirectory, @"ApplicationBasename",
 							applicationDirectory, @"RealUniqueID",
 							nil];
-						[returnArray addObject:applicationDetailObject];
+						if (updates) {
+                            if ([versions objectForKey:applicationRealname] != bundleVersionString) {
+                                [returnArray addObject:applicationDetailObject];
+                            }
+                            
+                        }
+                        else {
+                            [returnArray addObject:applicationDetailObject];
+                        }
+                    
 						[cache setValue:applicationDetailObject forKey:applicationDirectory];
 						cflush = TRUE;
 					}
@@ -64,6 +83,7 @@ NSArray * get_application_list(BOOL sort) {
 	}
 	
 	if ([returnArray count] == 0)
+        [returnArray release];
 		return NULL;
 	
 	if (sort)

@@ -18,6 +18,12 @@
 		41E0DFD3123823030068268F /* applist.m in Sources */ = {isa = PBXBuildFile; fileRef = 41E0DFD2123823030068268F /* applist.m */; };
 		AD2ABA53158088E000146E30 /* Property List.plist in Resources */ = {isa = PBXBuildFile; fileRef = AD2ABA52158088E000146E30 /* Property List.plist */; };
 		AD2ABA5A1580FA9800146E30 /* CrackApp.m in Sources */ = {isa = PBXBuildFile; fileRef = AD2ABA591580FA9700146E30 /* CrackApp.m */; };
+		AD838DEB159041000044E042 /* libz.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = AD838DEA159041000044E042 /* libz.dylib */; };
+		AD838DFB159041DE0044E042 /* ioapi.c in Sources */ = {isa = PBXBuildFile; fileRef = AD838DF1159041DE0044E042 /* ioapi.c */; };
+		AD838DFC159041DE0044E042 /* mztools.c in Sources */ = {isa = PBXBuildFile; fileRef = AD838DF3159041DE0044E042 /* mztools.c */; };
+		AD838DFD159041DE0044E042 /* unzip.c in Sources */ = {isa = PBXBuildFile; fileRef = AD838DF5159041DE0044E042 /* unzip.c */; };
+		AD838DFE159041DE0044E042 /* zip.c in Sources */ = {isa = PBXBuildFile; fileRef = AD838DF7159041DE0044E042 /* zip.c */; };
+		AD838DFF159041DE0044E042 /* ZipArchive.mm in Sources */ = {isa = PBXBuildFile; fileRef = AD838DFA159041DE0044E042 /* ZipArchive.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +51,18 @@
 		AD2ABA581580FA9700146E30 /* CrackApp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CrackApp.h; sourceTree = "<group>"; };
 		AD2ABA591580FA9700146E30 /* CrackApp.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CrackApp.m; sourceTree = "<group>"; };
 		AD838DCC158F7FCE0044E042 /* NSTask.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NSTask.h; sourceTree = "<group>"; };
+		AD838DEA159041000044E042 /* libz.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.dylib; path = usr/lib/libz.dylib; sourceTree = SDKROOT; };
+		AD838DF0159041DE0044E042 /* crypt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = crypt.h; sourceTree = "<group>"; };
+		AD838DF1159041DE0044E042 /* ioapi.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = ioapi.c; sourceTree = "<group>"; };
+		AD838DF2159041DE0044E042 /* ioapi.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ioapi.h; sourceTree = "<group>"; };
+		AD838DF3159041DE0044E042 /* mztools.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mztools.c; sourceTree = "<group>"; };
+		AD838DF4159041DE0044E042 /* mztools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mztools.h; sourceTree = "<group>"; };
+		AD838DF5159041DE0044E042 /* unzip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = unzip.c; sourceTree = "<group>"; };
+		AD838DF6159041DE0044E042 /* unzip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = unzip.h; sourceTree = "<group>"; };
+		AD838DF7159041DE0044E042 /* zip.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = zip.c; sourceTree = "<group>"; };
+		AD838DF8159041DE0044E042 /* zip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = zip.h; sourceTree = "<group>"; };
+		AD838DF9159041DE0044E042 /* ZipArchive.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZipArchive.h; sourceTree = "<group>"; };
+		AD838DFA159041DE0044E042 /* ZipArchive.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ZipArchive.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -52,6 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD838DEB159041000044E042 /* libz.dylib in Frameworks */,
 				1D60589F0D05DD5A006BFB54 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -77,6 +96,7 @@
 		29B97314FDCFA39411CA2CEA /* CustomTemplate */ = {
 			isa = PBXGroup;
 			children = (
+				AD838DEA159041000044E042 /* libz.dylib */,
 				AD2ABA541580A71D00146E30 /* Clutch.entitlements */,
 				080E96DDFE201D6D7F000001 /* Classes */,
 				29B97315FDCFA39411CA2CEA /* Other Sources */,
@@ -90,6 +110,7 @@
 		29B97315FDCFA39411CA2CEA /* Other Sources */ = {
 			isa = PBXGroup;
 			children = (
+				AD838DEF159041DE0044E042 /* zip */,
 				4155391A1238256D008EE206 /* crack.h */,
 				4155391B1238256D008EE206 /* crack.m */,
 				AD2ABA591580FA9700146E30 /* CrackApp.m */,
@@ -128,6 +149,25 @@
 				1D30AB110D05D00D00671497 /* Foundation.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		AD838DEF159041DE0044E042 /* zip */ = {
+			isa = PBXGroup;
+			children = (
+				AD838DF0159041DE0044E042 /* crypt.h */,
+				AD838DF1159041DE0044E042 /* ioapi.c */,
+				AD838DF2159041DE0044E042 /* ioapi.h */,
+				AD838DF3159041DE0044E042 /* mztools.c */,
+				AD838DF4159041DE0044E042 /* mztools.h */,
+				AD838DF5159041DE0044E042 /* unzip.c */,
+				AD838DF6159041DE0044E042 /* unzip.h */,
+				AD838DF7159041DE0044E042 /* zip.c */,
+				AD838DF8159041DE0044E042 /* zip.h */,
+				AD838DF9159041DE0044E042 /* ZipArchive.h */,
+				AD838DFA159041DE0044E042 /* ZipArchive.mm */,
+			);
+			name = zip;
+			path = Classes/zip;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -230,6 +270,11 @@
 				41261396141B5CFA006DBF89 /* scinfo.m in Sources */,
 				41C30A2914311408008C17DB /* out.m in Sources */,
 				AD2ABA5A1580FA9800146E30 /* CrackApp.m in Sources */,
+				AD838DFB159041DE0044E042 /* ioapi.c in Sources */,
+				AD838DFC159041DE0044E042 /* mztools.c in Sources */,
+				AD838DFD159041DE0044E042 /* unzip.c in Sources */,
+				AD838DFE159041DE0044E042 /* zip.c in Sources */,
+				AD838DFF159041DE0044E042 /* ZipArchive.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

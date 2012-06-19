@@ -6,11 +6,13 @@
 #import <sys/stat.h>
 #import <utime.h>
 #import "out.h"
+#import "ZipArchive.h"
 
 int overdrive_enabled;
 int only_armv7;
 int only_armv6;
 int bash;
+int compression_level;
 NSString *bash_script;
 
 #define FAT_CIGAM 0xbebafeca
@@ -25,6 +27,8 @@ NSString * crack_application(NSString *application_basedir, NSString *basename);
 NSString * init_crack_binary(NSString *application_basedir, NSString *bdir, NSString *workingDir, NSDictionary *infoplist);
 NSString * crack_binary(NSString *binaryPath, NSString *finalPath, NSString **error);
 NSString * genRandStringLength(int len);
+ZipArchive * createZip(NSString *file);
+void zip(ZipArchive *zip, NSString *folder, int compression);
 int get_local_arch();
 
 struct fat_arch {
