@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
     NSAutoreleasePool * pool = [[NSAutoreleasePool alloc] init];
 	
 	if (getuid() != 0) {
-		printf("You must be root to use Clutch.\n");
+		printf("You must be root to use ClutchMod.\n");
 		goto endMain;
 	}
 	
