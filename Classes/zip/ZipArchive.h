@@ -36,6 +36,8 @@
 
 @property (nonatomic, retain) id delegate;
 
+-(BOOL) openZipFile2:(NSString*) zipFile;
+
 -(BOOL) CreateZipFile2:(NSString*) zipFile;
 -(BOOL) CreateZipFile2:(NSString*) zipFile Password:(NSString*) password;
 -(BOOL) addFileToZip:(NSString*) file newname:(NSString*) newname compression:(int) compression;

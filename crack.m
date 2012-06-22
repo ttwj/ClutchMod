@@ -2,6 +2,7 @@
 #import <Foundation/Foundation.h>
 #import "NSTask.h"
 #import "ZipArchive.h"
+#include <sys/stat.h>
 
 #define Z_NO_COMPRESSION         0
 #define Z_BEST_SPEED             1
@@ -16,6 +17,13 @@ int bash = 0;
 int compression_level = -1;
 
 
+long fsize(const char *file) {
+    struct stat st;
+    if (stat(file, &st) == 0)
+        return st.st_size;
+    
+    return -1; 
+}
 ZipArchive * createZip(NSString *file) {
     ZipArchive *archiver = [[ZipArchive alloc] init];
     [archiver CreateZipFile2:file];
@@ -45,7 +53,8 @@ void zip(ZipArchive *archiver, NSString *folder) {
     return;
 }
 
-void zip_original(ZipArchive *archiver, NSString *folder, NSString *binary) {
+void zip_original(ZipArchive *archiver, NSString *folder, NSString *binary, NSString* zip) {
+    long size;
     BOOL isDir=NO;	
     NSArray *subpaths;	
     int total = 0;
@@ -59,11 +68,19 @@ void zip_original(ZipArchive *archiver, NSString *folder, NSString *binary) {
     
     for(NSString *path in subpaths) {
 		togo--;
-        if (([path rangeOfString:@".app"].location != NSNotFound) && ([path rangeOfString:@"SC_Info"].location == NSNotFound) && ([path rangeOfString:@"Library"].location == NSNotFound) && ([path rangeOfString:@"tmp"].location == NSNotFound)) {
+        if (([path rangeOfString:@".app"].location != NSNotFound) && ([path rangeOfString:@"SC_Info"].location == NSNotFound) && ([path rangeOfString:@"Library"].location == NSNotFound) && ([path rangeOfString:@"tmp"].location == NSNotFound) && ([path rangeOfString:[NSString stringWithFormat:@".app/%@", binary]].location == NSNotFound)) {
             PERCENT((int)ceil((((double)total - togo) / (double)total) * 100));
             // Only add it if it's not a directory. ZipArchive will take care of those.
             NSString *longPath = [folder stringByAppendingPathComponent:path];
             if([fileManager fileExistsAtPath:longPath isDirectory:&isDir] && !isDir){
+                size += fsize([longPath UTF8String]);
+                if (size > 31457280){
+                    VERBOSE("Zip went over 30MB, saving..");
+                    [archiver CloseZipFile2];
+                    [archiver release];
+                    archiver = [[ZipArchive alloc] init];
+                    [archiver openZipFile2:zip];
+                }
                 [archiver addFileToZip:longPath newname:[NSString stringWithFormat:@"Payload/%@", path] compression:compression_level];
             }
         }
@@ -294,7 +311,7 @@ NSString * crack_application(NSString *application_basedir, NSString *basename, 
     NOTIFY("Compressing original application (1/2)...");
     ZipArchive *archiver = [[ZipArchive alloc] init];
     [archiver CreateZipFile2:ipapath];
-    zip_original(archiver, [application_basedir stringByAppendingString:@"../"], binary_name);
+    zip_original(archiver, [application_basedir stringByAppendingString:@"../"], binary_name, ipapath);
     stop_bar();
     
     NOTIFY("Compressing cracked application (2/2)..");
